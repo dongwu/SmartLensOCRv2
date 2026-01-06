@@ -1,0 +1,50 @@
+version: '3.9'
+
+services:
+  smartlensocr-backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      HOST: 0.0.0.0
+      PORT: 8000
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+    networks:
+      - smartlens-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  smartlensocr-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: ${API_URL:-http://localhost:8000}
+    volumes:
+      - .:/app
+    networks:
+      - smartlens-network
+    depends_on:
+      - smartlensocr-backend
+    restart: unless-stopped
+
+networks:
+  smartlens-network:
+    driver: bridge
+
+volumes:
+  data:
