@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # SmartLensOCR Frontend - Multi-stage Docker build
 # Stage 1: Build React app with Vite
 # Stage 2: Serve with Nginx
