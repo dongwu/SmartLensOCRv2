@@ -31,7 +31,7 @@ RUN npm run build
 FROM nginx:alpine
 
 # Copy nginx configuration
-COPY <<EOF /etc/nginx/conf.d/default.conf
+RUN cat << 'EOF' > /etc/nginx/conf.d/default.conf
 server {
     listen 80;
     server_name _;
