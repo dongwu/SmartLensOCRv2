@@ -1,34 +1,35 @@
-#!/bin/sh
-# Frontend Runtime Configuration Script
-# This script generates a JavaScript file with the API configuration
-# The backend URL is read from environment variable BACKEND_URL
-# If not provided, defaults to window.location.origin (same host)
+#!/bin/bash
+set -e
 
-BACKEND_URL="${BACKEND_URL:-${WINDOW_LOCATION_ORIGIN}}"
+echo "=========================================="
+echo "SmartLensOCR Frontend Startup"
+echo "=========================================="
 
-# If BACKEND_URL is still empty, derive from current host
-if [ -z "$BACKEND_URL" ]; then
-  BACKEND_URL=""  # Will use window.location.origin on client side
-fi
+# Get the backend URL from environment
+BACKEND_URL="${BACKEND_URL:-http://localhost:8000}"
+
+echo "Backend URL: $BACKEND_URL"
+echo "Creating config.js..."
 
 # Create config file
-cat > /usr/share/nginx/html/config.js << 'CONFIG_EOF'
-// Runtime configuration injected at container startup
+cat > /usr/share/nginx/html/config.js << 'CONFIGEOF'
+// SmartLensOCR Runtime Configuration
+// This file is generated at container startup
 window.__APP_CONFIG__ = {
   API_URL: "BACKEND_URL_PLACEHOLDER"
 };
-CONFIG_EOF
+console.log('SmartLensOCR Config Loaded:', window.__APP_CONFIG__);
+CONFIGEOF
 
 # Replace placeholder with actual backend URL
-if [ -n "$BACKEND_URL" ]; then
-  sed -i "s|BACKEND_URL_PLACEHOLDER|$BACKEND_URL|g" /usr/share/nginx/html/config.js
-else
-  # Use relative path to same host (works when frontend and backend are on same domain)
-  sed -i "s|BACKEND_URL_PLACEHOLDER|${RELATIVE_BACKEND_PATH:-http://localhost:8000}|g" /usr/share/nginx/html/config.js
-fi
+sed -i "s|BACKEND_URL_PLACEHOLDER|${BACKEND_URL}|g" /usr/share/nginx/html/config.js
 
-echo "Configuration file generated:"
+echo ""
+echo "Config file generated:"
 cat /usr/share/nginx/html/config.js
+echo ""
+echo "Starting Nginx..."
+echo "=========================================="
 
-# Start nginx
+# Start Nginx
 exec nginx -g "daemon off;"
