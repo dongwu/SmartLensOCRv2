@@ -4,11 +4,30 @@ import { TextRegion } from "../types";
 /**
  * SERVICE LAYER - Backend Integration
  * 
- * This service communicates with the Python FastAPI backend at http://localhost:8000
+ * This service communicates with the Python FastAPI backend.
  * The backend handles all Gemini API calls securely on the server side.
+ * 
+ * API URL is determined by:
+ * 1. Runtime config injected in Docker: window.__APP_CONFIG__.API_URL (Cloud Run)
+ * 2. Build-time environment variable: VITE_API_URL (development)
+ * 3. Default fallback: http://localhost:8000 (local development)
  */
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const getAPIUrl = (): string => {
+  // Check if runtime config exists (Docker/Cloud Run environment)
+  if (typeof window !== 'undefined' && (window as any).__APP_CONFIG__?.API_URL) {
+    const url = (window as any).__APP_CONFIG__.API_URL;
+    console.log('[GeminiService] Using API_URL from runtime config:', url);
+    return url;
+  }
+  // Fall back to build-time environment variable or localhost
+  const url = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  console.log('[GeminiService] Using API_URL from build env:', url);
+  return url;
+};
+
+// Do not evaluate API URL at module load time. Call `getAPIUrl()` at runtime
+// so the value injected by `/config.js` is used when available.
 
 /**
  * Phase 1: Layout Analysis via Backend
@@ -16,7 +35,9 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
  */
 export const detectRegions = async (base64Image: string): Promise<TextRegion[]> => {
   try {
-    const response = await fetch(`${API_URL}/api/detect-regions`, {
+    const apiUrl = getAPIUrl();
+    console.log('[GeminiService] detectRegions request to:', `${apiUrl}/api/detect-regions`);
+    const response = await fetch(`${apiUrl}/api/detect-regions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -55,7 +76,8 @@ export const extractTextFromRegions = async (
   if (activeRegions.length === 0) return "";
 
   try {
-    const response = await fetch(`${API_URL}/api/extract-text`, {
+    const apiUrl = getAPIUrl();
+    const response = await fetch(`${apiUrl}/api/extract-text`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

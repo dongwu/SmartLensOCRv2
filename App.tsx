@@ -5,7 +5,20 @@ import { detectRegions, extractTextFromRegions } from './services/geminiService'
 import RegionOverlay from './components/RegionOverlay';
 import PricingModal from './components/PricingModal';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// Get API URL from runtime config (Cloud Run) or build-time env (dev)
+const getAPIUrl = (): string => {
+  if (typeof window !== 'undefined' && (window as any).__APP_CONFIG__?.API_URL) {
+    const url = (window as any).__APP_CONFIG__.API_URL;
+    console.log('[SmartLensOCR] Using API_URL from runtime config:', url);
+    return url;
+  }
+  const url = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  console.log('[SmartLensOCR] Using API_URL from build env:', url);
+  return url;
+};
+
+// Do not evaluate API URL at module load time. Use `getAPIUrl()` where needed so
+// runtime config injected by `/config.js` can take effect when available.
 
 const App: React.FC = () => {
   // --- Auth & Monetization State ---
@@ -43,17 +56,26 @@ const App: React.FC = () => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_URL}/api/users`, {
+      const apiUrl = getAPIUrl();
+      console.log('[SmartLensOCR] Login attempt:', { email: email.trim().toLowerCase(), apiUrl });
+
+      const response = await fetch(`${apiUrl}/api/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
 
+      console.log('[SmartLensOCR] Login response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to login');
+        const errorText = await response.text();
+        console.error('[SmartLensOCR] Login error response:', errorText);
+        throw new Error(`Login failed: ${response.status} ${errorText}`);
       }
 
       const userData = await response.json();
+      console.log('[SmartLensOCR] Login successful:', userData);
+      
       const userObj: User = {
         id: userData.id,
         email: userData.email,
@@ -65,8 +87,8 @@ const App: React.FC = () => {
       localStorage.setItem('ocr_user', JSON.stringify(userObj));
       setShowLogin(false);
     } catch (err: any) {
-      setError('Login failed. Please try again.');
-      console.error('Login error:', err);
+      console.error('[SmartLensOCR] Login error:', err);
+      setError(`Login failed: ${err.message}. API URL: ${getAPIUrl()}`);
     } finally {
       setLoginLoading(false);
     }
@@ -83,7 +105,8 @@ const App: React.FC = () => {
     if (!user) return;
     
     try {
-      const response = await fetch(`${API_URL}/api/users/${user.id}/credits`, {
+      const apiUrl = getAPIUrl();
+      const response = await fetch(`${apiUrl}/api/users/${user.id}/credits`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount }),
