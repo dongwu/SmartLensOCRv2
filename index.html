@@ -18,6 +18,12 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1039/1039328.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load runtime configuration (injected by Docker startup script) -->
+    <!-- Load runtime configuration FIRST (injected by Docker startup script) -->
+    <!-- NO defer attribute - must load synchronously before React app -->
+    <script src="/config.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         
