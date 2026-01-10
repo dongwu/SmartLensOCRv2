@@ -26,13 +26,21 @@ load_dotenv()
 app = FastAPI(title="SmartLensOCR Backend", version="1.0.0")
 
 # Configure CORS for frontend communication
+# Allow only specific frontend URL(s) for security
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")  # Default for local development
+allow_origins = [
+    url.strip() for url in FRONTEND_URL.split(",") if url.strip()
+]  # Support multiple URLs separated by commas
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins (configure based on deployment)
+    allow_origins=allow_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+print(f"[SmartLensOCR] CORS allowed origins: {allow_origins}", flush=True)
 
 # Configure Gemini API
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -40,7 +48,14 @@ if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 # Database configuration
-DB_PATH = os.path.join(os.path.dirname(__file__), "smartlensocr.db")
+# Use /mnt for persistent storage (mounted Cloud Storage bucket in Cloud Run)
+# Fallback to local directory if /mnt is not available (local development)
+DB_DIR = "/mnt" if os.path.exists("/mnt") else os.path.dirname(__file__)
+DB_PATH = os.path.join(DB_DIR, "smartlensocr.db")
+
+# Ensure DB directory exists
+os.makedirs(DB_DIR, exist_ok=True)
+print(f"[SmartLensOCR] Database initialized at: {DB_PATH}", flush=True)
 
 # ============================================================================
 # MODELS
