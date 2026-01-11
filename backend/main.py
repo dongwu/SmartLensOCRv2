@@ -347,13 +347,35 @@ async def health_check():
     return HealthResponse(status="healthy", version="1.0.0")
 
 
-@app.options("/{full_path:path}")
-async def preflight_handler(full_path: str):
-    """
-    Catch-all OPTIONS handler for CORS preflight requests.
-    FastAPI's CORSMiddleware should handle this automatically.
-    """
-    return {"status": "ok"}
+# Explicit OPTIONS handlers for CORS preflight - must match actual endpoint paths
+@app.options("/api/users")
+async def options_users():
+    return {}
+
+
+@app.options("/api/users/{user_id}")
+async def options_get_user(user_id: str):
+    return {}
+
+
+@app.options("/api/users/{user_id}/credits")
+async def options_update_credits(user_id: str):
+    return {}
+
+
+@app.options("/api/detect-regions")
+async def options_detect_regions():
+    return {}
+
+
+@app.options("/api/extract-text")
+async def options_extract_text():
+    return {}
+
+
+@app.options("/api/process-document")
+async def options_process_document():
+    return {}
 
 
 @app.post("/api/users", response_model=UserResponse)
