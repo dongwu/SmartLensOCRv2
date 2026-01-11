@@ -36,8 +36,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "OPTIONS", "PUT", "DELETE"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,  # Cache preflight for 1 hour
 )
 
 print(f"[SmartLensOCR] CORS allowed origins: {allow_origins}", flush=True)
@@ -343,6 +345,15 @@ async def startup():
 async def health_check():
     """Health check endpoint"""
     return HealthResponse(status="healthy", version="1.0.0")
+
+
+@app.options("/{full_path:path}")
+async def preflight_handler(full_path: str):
+    """
+    Catch-all OPTIONS handler for CORS preflight requests.
+    FastAPI's CORSMiddleware should handle this automatically.
+    """
+    return {"status": "ok"}
 
 
 @app.post("/api/users", response_model=UserResponse)
